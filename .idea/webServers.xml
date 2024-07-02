@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="8860eb46-6624-48ad-814d-2a4c3ec08da7" name="reg.ru_barber">
+        <fileTransfer rootFolder="/var/www/u2713985/data/www/emcash.ru" accessType="SFTP" host="37.140.192.74" port="22" sshConfigId="b9c9480f-9c2c-42a2-bc4a-ff75459d0d4a" sshConfig="REG.RU_barber_u2713985@37.140.192.74:22">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
