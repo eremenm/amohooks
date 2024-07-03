@@ -126,8 +126,10 @@ class AmoCRMController
 
             $events = $this->apiClient->events()->get($eventsFilter);
             $eventsResult = $events->toArray();
-
+            return $eventsResult;
             $eventsResult = $this->eventsParse($eventsResult, $entity);
+            //return $eventsResult;
+
             $notesCollection = new NotesCollection();
             foreach ($eventsResult as $eventItem) {
                 $commonNote = new CommonNote();
@@ -178,6 +180,21 @@ class AmoCRMController
             if ($eventItem['type'] === 'entity_tag_added') {
                 foreach ($eventItem['value_after'] as $valueAfter) {
                     $text .= 'Был добавлен тег: ' . $valueAfter['tag']['name'] . PHP_EOL;
+                }
+            }
+            if ($eventItem['type'] === 'entity_tag_deleted') {
+                foreach ($eventItem['value_after'] as $valueAfter) {
+                    $text .= 'Был удален тег: ' . $valueAfter['tag']['name'] . PHP_EOL;
+                }
+            }
+            if ($eventItem['type'] === 'name_field_changed') {
+                foreach ($eventItem['value_after'] as $valueAfter) {
+                    $text .= 'Название стало: ' . $valueAfter['name_field_value']['name'] . PHP_EOL;
+                }
+            }
+            if ($eventItem['type'] === 'sale_field_changed') {
+                foreach ($eventItem['value_after'] as $valueAfter) {
+                    $text .= 'Бюджет стал: ' . $valueAfter['sale_field_value']['sale'] . PHP_EOL;
                 }
             }
 
