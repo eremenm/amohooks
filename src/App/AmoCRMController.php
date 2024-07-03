@@ -21,7 +21,7 @@ class AmoCRMController
     public function __construct()
     {
         $input = json_decode(file_get_contents('php://input'), true);
-        $this->postData = $input ?: $_POST;
+        $this->postData = $_POST ?: $input;
 
         $dotenv = new Dotenv();
         $dotenv->load(__DIR__ . '/../../.env');
