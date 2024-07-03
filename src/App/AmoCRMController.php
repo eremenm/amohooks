@@ -149,9 +149,7 @@ class AmoCRMController
         foreach ($events as $eventItem) {
             if($eventItem['type'] === 'common_note_added') continue;
 
-            //TODO Тут надо обработать все варианты событий, с разными вариациями структуры данных и запросом других сущностей.
-            // Но для тестового задания это уже слишком, можно просидеть не мало часов прежде чем это заработает как надо.
-            // В итоге обработал несколько типов полей.
+            //TODO обработал несколько основных типов событий. Не все конечно.
             $text = '';
             if (preg_match('/^custom_field_\d+_value_changed$/', $eventItem['type'])) {
                 $customFieldsService = $this->apiClient->customFields($entity);
@@ -195,6 +193,29 @@ class AmoCRMController
                     $text .= 'Бюджет стал: ' . $valueAfter['sale_field_value']['sale'] . PHP_EOL;
                 }
             }
+            if ($eventItem['type'] === 'entity_linked') {
+                $matchTypes = [
+                    'company' => [
+                        'name' => 'Добавлена компания: ',
+                        'entity' => 'companies'
+                    ],
+                    'contact' => [
+                        'name' => 'Добавлен контакт: ',
+                        'entity' => 'contacts'
+                    ]
+                ];
+                foreach ($eventItem['value_after'] as $valueAfter) {
+                    $entityId = $valueAfter['link']['entity']['id'];
+                    $entityType = $valueAfter['link']['entity']['type'];
+                    if (isset($matchTypes[$entityType])) {
+                        $entityLinked = $this->apiClient->{$matchTypes[$entityType]['entity']}()->getOne($entityId);
+                        $entityLinked = $entityLinked->toArray();
+                        $text .= $matchTypes[$entityType]['name'] . $entityLinked['name'] . PHP_EOL;
+                    }
+                }
+            }
+
+            if (empty($text)) continue;
 
             $time = date('d-m-Y H:i:s', $eventItem['created_at']);
             $text .= 'Дата и время: ' . $time;
