@@ -23,14 +23,6 @@ class AmoCRMController
         $input = json_decode(file_get_contents('php://input'), true);
         $this->postData = $_POST ?: $input;
 
-        if (!empty($this->postData)) {
-            file_put_contents(
-                __DIR__.'/../hooks.log',
-                json_encode($this->postData,JSON_UNESCAPED_UNICODE).PHP_EOL,
-                FILE_APPEND
-            );
-        }
-
         $dotenv = new Dotenv();
         $dotenv->load(__DIR__ . '/../../.env');
 
