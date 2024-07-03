@@ -126,9 +126,7 @@ class AmoCRMController
 
             $events = $this->apiClient->events()->get($eventsFilter);
             $eventsResult = $events->toArray();
-            return $eventsResult;
             $eventsResult = $this->eventsParse($eventsResult, $entity);
-            //return $eventsResult;
 
             $notesCollection = new NotesCollection();
             foreach ($eventsResult as $eventItem) {
