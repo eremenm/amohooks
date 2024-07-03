@@ -37,7 +37,7 @@ class AmoCRMController
             ->setAccountBaseDomain($accessToken->getValues()['baseDomain'])
             ->onAccessTokenRefresh(
                 function (AccessTokenInterface $accessToken, string $baseDomain) {
-                    saveToken(
+                    AmoCRMTokenActions::saveToken(
                         [
                             'accessToken' => $accessToken->getToken(),
                             'refreshToken' => $accessToken->getRefreshToken(),
@@ -118,40 +118,78 @@ class AmoCRMController
             $eventsFilter = new EventsFilter();
             $eventsFilter->setEntity([$entity]);
             $eventsFilter->setEntityIds([$event['id']]);
+            //TODO Про setCreatedAt Этот фильтр не идеален, бывают ситуации когда время самого события отличается на секунду.
+            // Как вариант, записывать в файл, например, события по которым уже было создано примечание,
+            // а потом получать все события элемента и отфильтровывать их.
+            // Но для тестового задания я подумал что это уже слишком ;)
             $eventsFilter->setCreatedAt([$event['updated_at']]);
 
             $events = $this->apiClient->events()->get($eventsFilter);
             $eventsResult = $events->toArray();
 
+            $eventsResult = $this->eventsParse($eventsResult, $entity);
             $notesCollection = new NotesCollection();
             foreach ($eventsResult as $eventItem) {
-                if($eventItem['type'] === 'common_note_added') continue;
-
-                $text = '';
-                foreach ($eventItem['value_after'] as $key => $data) {
-                    foreach ($data as $nameField => $valueField) {
-                        $text .= 'Поле: ' . $nameField;
-                        if (isset($eventItem['value_before'][$key][$nameField])) {
-                            $text .= ' Было: ' . array_values($eventItem['value_before'][$key][$nameField])[0];
-                        }
-                        $text .= ' Стало: ' . array_values($valueField)[0] . PHP_EOL;
-                    }
-                }
-                $time = date('d-m-Y H:i:s', $eventItem['created_at']);
-                $text .= ' Дата и время: ' . $time;
-
                 $commonNote = new CommonNote();
                 $commonNote->setEntityId($eventItem['entity_id'])
-                    ->setText($text)
+                    ->setText($eventItem['text'])
                     ->setCreatedBy($eventItem['created_by']);
                 $notesCollection->add($commonNote);
             }
-
             $notesService = $this->apiClient->notes($entity);
             $result['notes'] = $notesService->add($notesCollection);
-
         }
 
+        return $result;
+    }
+
+    private function eventsParse($events, $entity)
+    {
+        $result = [];
+        foreach ($events as $eventItem) {
+            if($eventItem['type'] === 'common_note_added') continue;
+
+            //TODO Тут надо обработать все варианты событий, с разными вариациями структуры данных и запросом других сущностей.
+            // Но для тестового задания это тоже уже слишком, можно просидеть пару дней прежде чем это заработает как надо.
+            // В итоге обработал несколько типов полей.
+            $text = '';
+            if (preg_match('/^custom_field_\d+_value_changed$/', $eventItem['type'])) {
+                $customFieldsService = $this->apiClient->customFields($entity);
+                $fieldsData = $customFieldsService->get();
+                $fieldsName = [];
+                foreach ($fieldsData as $field) $fieldsName[$field->id] = $field->name;
+
+                $fieldName = '';
+                if (!empty($eventItem['value_before'])) {
+                    foreach ($eventItem['value_before'] as $valueBefore) {
+                        $fieldName = $fieldsName[$valueBefore['custom_field_value']['field_id']];
+                    }
+                }
+                if (!empty($eventItem['value_after'])) {
+                    foreach ($eventItem['value_after'] as $valueAfter) {
+                        $fieldName = $fieldsName[$valueAfter['custom_field_value']['field_id']];
+                        $fieldValue = $valueAfter['custom_field_value']['text'];
+                        $text .= 'Поле "' . $fieldName . '" стало: ' . $fieldValue . PHP_EOL;
+                    }
+                } else {
+                    $text .= 'Поле ' . $fieldName . ' стало: "пусто"' . PHP_EOL;
+                }
+            }
+            if ($eventItem['type'] === 'entity_tag_added') {
+                foreach ($eventItem['value_after'] as $valueAfter) {
+                    $text .= 'Был добавлен тег: ' . $valueAfter['tag']['name'] . PHP_EOL;
+                }
+            }
+
+            $time = date('d-m-Y H:i:s', $eventItem['created_at']);
+            $text .= 'Дата и время: ' . $time;
+
+            $result[] = [
+                'entity_id' => $eventItem['entity_id'],
+                'text' => $text,
+                'created_by' => $eventItem['created_by']
+            ];
+        }
         return $result;
     }
 }
