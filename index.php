@@ -3,6 +3,8 @@ header('Content-Type: application/json');
 
 require_once 'vendor/autoload.php';
 
+sleep(2);
+
 $ctrl = new \App\AmoCRMController();
 $result = $ctrl->hookHandler();
 
